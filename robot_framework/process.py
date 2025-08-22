@@ -5,7 +5,7 @@ from datetime import date
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from itk_dev_shared_components.eflyt import eflyt_login, eflyt_search, eflyt_case
+from itk_dev_shared_components.eflyt import eflyt_login, eflyt_search, eflyt_case, eflyt_letter
 from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConnection
 from OpenOrchestrator.database.queues import QueueElement
 
@@ -19,10 +19,10 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
 
     credentials = orchestrator_connection.get_credential("Eflyt")
     webdriver = eflyt_login.login(credentials.username, credentials.password)
-    
+
     eflyt_search.search(webdriver, to_date=date.today(), case_state="Ubehandlet")
     cases = eflyt_search.extract_cases(webdriver)
-    oc.log_trace(f"Found {len(cases)} cases.")
+    orchestrator_connection.log_trace(f"Found {len(cases)} cases.")
 
     cases = filter_cases.filter_cases(cases)
 
@@ -47,7 +47,7 @@ def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection):
 
 Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse med virkning fra den {move_date}.
 """
-    if not send_letter_to_anmelder(webdriver, letter_text):
+    if not eflyt_letter.send_letter_to_anmelder(webdriver, letter_text):
         oc.log_trace("Letter could not be sent.")
         return
 
