@@ -13,6 +13,7 @@ SCREENSHOT_SENDER = "robot@friend.dk"
 
 # Constant/Credential names
 ERROR_EMAIL = "Error Email"
+ROBOT_NAME = "EFlyt Godkendelse af Udrejse med Kun En Person"
 
 
 # Queue specific configs
