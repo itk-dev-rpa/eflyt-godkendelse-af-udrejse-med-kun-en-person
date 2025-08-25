@@ -22,7 +22,7 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
     credentials = orchestrator_connection.get_credential("Eflyt")
     webdriver = eflyt_login.login(credentials.username, credentials.password)
     event_log = orchestrator_connection.get_constant("Event Log")
-    itk_dev_event_log.setup_logging(event_log)
+    itk_dev_event_log.setup_logging(event_log.value)
 
     eflyt_search.search(webdriver, to_date=date.today(), case_state="Ubehandlet")
     cases = eflyt_search.extract_cases(webdriver)
