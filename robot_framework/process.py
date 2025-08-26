@@ -20,12 +20,12 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
     orchestrator_connection.log_trace("Running process.")
 
     credentials = orchestrator_connection.get_credential("Eflyt")
-    webdriver = eflyt_login.login(credentials.username, credentials.password)
+    browser = eflyt_login.login(credentials.username, credentials.password)
     event_log = orchestrator_connection.get_constant("Event Log")
     itk_dev_event_log.setup_logging(event_log.value)
 
-    eflyt_search.search(webdriver, to_date=date.today(), case_state="Ubehandlet")
-    cases = eflyt_search.extract_cases(webdriver)
+    eflyt_search.search(browser, to_date=date.today(), case_state="Ubehandlet")
+    cases = eflyt_search.extract_cases(browser)
     orchestrator_connection.log_trace(f"Found {len(cases)} cases.")
 
     cases = filter_cases.filter_cases(cases)
@@ -34,24 +34,25 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
         if queue_element.status is not QueueStatus.NEW:
             continue
         orchestrator_connection.log_trace(f"Starting case {case.case_number}")
-        eflyt_search.open_case(webdriver, case)
-        handle_case(webdriver, orchestrator_connection, case.case_number)
+        eflyt_search.open_case(browser, case.case_number)
+        handle_case(browser, orchestrator_connection, queue_element)
 
 
-def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, reference: str):
+def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, queue_element: QueueElement):
     """Handle case in eFlyt."""
-    oc.set_queue_element_status(reference, QueueStatus.IN_PROGRESS)
+    oc.set_queue_element_status(queue_element.id, QueueStatus.IN_PROGRESS)
     # Check that there is just one applicant
     applicants = eflyt_case.get_applicants(webdriver)
     table = webdriver.find_element(By.ID, "ctl00_ContentPlaceHolder2_GridViewMovingPersons")
     rows = table.find_elements(By.TAG_NAME, "tr")
     move_date = rows[0].find_element(By.XPATH, "td[2]/a[1]").text
 
-    first_habitant_is_applicant = len(applicants) == 1 and rows[0].find_element(By.XPATH, "td[2]/a[1]").text == "A"
-    if not first_habitant_is_applicant:
+    first_habitant_is_applicant = len(applicants) == 1 and rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
+    case_unprocessed = rows[0].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" and rows[1].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet"
+    if not first_habitant_is_applicant and not case_unprocessed:
         itk_dev_event_log.emit(config.ROBOT_NAME, "Skipped")
-        oc.log_trace("Skipping case, more than one inhabitant")
-        oc.set_queue_element_status(reference, QueueStatus.ABANDONED)
+        oc.log_trace("Skipping case")
+        oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
         return
 
     letter_text = f"""Du har anmeldt udrejse af Danmark.
@@ -61,7 +62,7 @@ Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse 
     if not eflyt_letter.send_letter_to_anmelder(webdriver, letter_text):
         itk_dev_event_log.emit(config.ROBOT_NAME, "Not registered")
         oc.log_trace("Letter could not be sent.")
-        oc.set_queue_element_status(reference, QueueStatus.ABANDONED)
+        oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
         return
 
     eflyt_case.approve_case(webdriver)
@@ -69,7 +70,7 @@ Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse 
     eflyt_case.add_note(webdriver, note_text)
     oc.log_trace("Case approved and note added.")
     itk_dev_event_log.emit(config.ROBOT_NAME, "Completed")
-    oc.set_queue_element_status(reference, QueueStatus.DONE)
+    oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
 
 
 def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElement:
