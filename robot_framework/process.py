@@ -50,7 +50,7 @@ def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, queue_e
     first_habitant_is_applicant = len(applicants) == 1 and rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
     case_unprocessed = rows[0].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" and rows[1].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet"
     if not first_habitant_is_applicant and not case_unprocessed:
-        itk_dev_event_log.emit(config.ROBOT_NAME, "Skipped")
+        itk_dev_event_log.emit(oc.process_name, "Skipped")
         oc.log_trace("Skipping case")
         oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
         return
@@ -60,7 +60,7 @@ def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, queue_e
 Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse med virkning fra den {move_date}.
 """
     if not eflyt_letter.send_letter_to_anmelder(webdriver, letter_text):
-        itk_dev_event_log.emit(config.ROBOT_NAME, "Not registered")
+        itk_dev_event_log.emit(oc.process_name, "Not registered")
         oc.log_trace("Letter could not be sent.")
         oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
         return
@@ -69,7 +69,7 @@ Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse 
     note_text = "Orientering om godkendelse af udrejse er sendt til anmelder"
     eflyt_case.add_note(webdriver, note_text)
     oc.log_trace("Case approved and note added.")
-    itk_dev_event_log.emit(config.ROBOT_NAME, "Completed")
+    itk_dev_event_log.emit(oc.process_name, "Completed")
     oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
 
 
