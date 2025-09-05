@@ -11,7 +11,6 @@ from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConn
 from OpenOrchestrator.database.queues import QueueElement, QueueStatus
 
 from robot_framework.eflyt import filter_cases
-from robot_framework import config
 
 
 # pylint: disable-next=unused-argument
@@ -83,14 +82,14 @@ def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElemen
     Returns:
         A QueueElement for the case.
     """
-    existing_elements = oc.get_queue_elements(config.ROBOT_NAME, reference)
+    existing_elements = oc.get_queue_elements(oc.process_name, reference)
     if len(existing_elements) == 0:
-        return oc.create_queue_element(config.ROBOT_NAME, reference)
+        return oc.create_queue_element(oc.process_name, reference)
     return existing_elements[0]
 
 
 if __name__ == "__main__":
     conn_string = os.getenv("OpenOrchestratorConnString")
     crypto_key = os.getenv("OpenOrchestratorKey")
-    oc = OrchestratorConnection(config.ROBOT_NAME, conn_string, crypto_key, "")
+    oc = OrchestratorConnection("Eflyt Godkendelse En Person", conn_string, crypto_key, "")
     process(oc)

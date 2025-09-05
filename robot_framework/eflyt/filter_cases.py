@@ -17,7 +17,6 @@ def filter_cases(cases: list[Case]) -> list[Case]:
         "Børneflytning 3",
         "Mindreårig",
         "Barn",
-        "Manuel opgave"
     )
 
     filtered_cases = [
