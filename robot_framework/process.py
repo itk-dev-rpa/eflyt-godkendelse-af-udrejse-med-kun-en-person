@@ -37,12 +37,12 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
         handle_case(browser, orchestrator_connection, queue_element)
 
 
-def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, queue_element: QueueElement):
+def handle_case(browser: webdriver.Chrome, oc: OrchestratorConnection, queue_element: QueueElement):
     """Handle case in eFlyt."""
     oc.set_queue_element_status(queue_element.id, QueueStatus.IN_PROGRESS)
     # Check that there is just one applicant
-    applicants = eflyt_case.get_applicants(webdriver)
-    table = webdriver.find_element(By.ID, "ctl00_ContentPlaceHolder2_GridViewMovingPersons")
+    applicants = eflyt_case.get_applicants(browser)
+    table = browser.find_element(By.ID, "ctl00_ContentPlaceHolder2_GridViewMovingPersons")
     rows = table.find_elements(By.TAG_NAME, "tr")
     move_date = rows[0].find_element(By.XPATH, "td[2]/a[1]").text
 
@@ -64,15 +64,15 @@ Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {m
 
         As of {date_today}, we have approved your request to be registered as having left the country, effective from {move_date}."""
 
-    if not eflyt_letter.send_letter_to_anmelder(webdriver, letter_text):
+    if not eflyt_letter.send_letter_to_anmelder(browser, letter_text):
         itk_dev_event_log.emit(oc.process_name, "Not registered with Digital Post")
         oc.log_trace("Letter could not be sent.")
         oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
         return
 
-    eflyt_case.approve_case(webdriver)
+    eflyt_case.approve_case(browser)
     note_text = "Orientering om godkendelse af udrejse er sendt til anmelder"
-    eflyt_case.add_note(webdriver, note_text)
+    eflyt_case.add_note(browser, note_text)
     oc.log_trace("Case approved and note added.")
     itk_dev_event_log.emit(oc.process_name, "Completed")
     oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
@@ -97,5 +97,5 @@ def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElemen
 if __name__ == "__main__":
     conn_string = os.getenv("OpenOrchestratorConnString")
     crypto_key = os.getenv("OpenOrchestratorKey")
-    oc = OrchestratorConnection("Eflyt Godkendelse En Person", conn_string, crypto_key, "")
-    process(oc)
+    orchestrator_connection = OrchestratorConnection("Eflyt Godkendelse En Person", conn_string, crypto_key, "")
+    process(orchestrator_connection)
