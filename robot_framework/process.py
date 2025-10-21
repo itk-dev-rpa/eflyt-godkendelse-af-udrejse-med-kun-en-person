@@ -79,7 +79,7 @@ Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {m
 
 
 def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElement:
-    """Get the first existing queue element, or create a new one and return that.   
+    """Get the first existing queue element, or create a new one and return that.
 
     Args:
         oc: Orchestrator connection to use.
