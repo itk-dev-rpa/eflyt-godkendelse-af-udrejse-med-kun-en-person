@@ -51,17 +51,23 @@ def handle_case(webdriver: webdriver.Chrome, oc: OrchestratorConnection, queue_e
     if not first_habitant_is_applicant and not case_unprocessed:
         itk_dev_event_log.emit(oc.process_name, "Skipped")
         oc.log_trace("Skipping case")
-        oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
+        oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
         return
 
+    date_today = date.today().strftime("%d-%m-%Y")
     letter_text = f"""Du har anmeldt udrejse af Danmark.
 
-Vi har d. {date.today().strftime("%d-%m-%Y")} godkendt din anmodning om udrejse med virkning fra den {move_date}.
+Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {move_date}.
 """
+    if rows[0].find_element(By.XPATH, "td[4]/a[1]").text == "Engelsk":  # If it's an english citizen, write in english.
+        letter_text = f"""You have reported your departure from Denmark.
+
+        As of {date_today}, we have approved your request to be registered as having left the country, effective from {move_date}."""
+
     if not eflyt_letter.send_letter_to_anmelder(webdriver, letter_text):
-        itk_dev_event_log.emit(oc.process_name, "Not registered")
+        itk_dev_event_log.emit(oc.process_name, "Not registered with Digital Post")
         oc.log_trace("Letter could not be sent.")
-        oc.set_queue_element_status(queue_element.id, QueueStatus.ABANDONED)
+        oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
         return
 
     eflyt_case.approve_case(webdriver)
