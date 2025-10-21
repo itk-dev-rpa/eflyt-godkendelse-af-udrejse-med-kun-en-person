@@ -97,5 +97,5 @@ def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElemen
 if __name__ == "__main__":
     conn_string = os.getenv("OpenOrchestratorConnString")
     crypto_key = os.getenv("OpenOrchestratorKey")
-    orchestrator_connection = OrchestratorConnection("Eflyt Godkendelse En Person", conn_string, crypto_key, "")
-    process(orchestrator_connection)
+    orchestrator_conn = OrchestratorConnection("Eflyt Godkendelse En Person", conn_string, crypto_key, "")
+    process(orchestrator_conn)

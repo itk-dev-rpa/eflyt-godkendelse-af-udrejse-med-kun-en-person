@@ -1,3 +1,4 @@
+"""Contains a function to filter cases."""
 from itk_dev_shared_components.eflyt.eflyt_case import Case
 
 
