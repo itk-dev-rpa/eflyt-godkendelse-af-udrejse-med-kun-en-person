@@ -46,9 +46,9 @@ def handle_case(browser: webdriver.Chrome, oc: OrchestratorConnection, queue_ele
     rows = table.find_elements(By.TAG_NAME, "tr")
     move_date = rows[0].find_element(By.XPATH, "td[2]/a[1]").text
 
-    first_habitant_is_applicant = len(applicants) == 1 and rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
+    first_habitant_is_only_applicant = len(applicants) == 1 and rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
     case_unprocessed = rows[0].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" and rows[1].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet"
-    if not first_habitant_is_applicant and not case_unprocessed:
+    if not first_habitant_is_only_applicant or not case_unprocessed:
         itk_dev_event_log.emit(oc.process_name, "Skipped")
         oc.log_trace("Skipping case")
         oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
@@ -71,6 +71,8 @@ Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {m
         return
 
     eflyt_case.approve_case(browser)
+    if not eflyt_case.check_all_approved(browser):
+        raise AssertionError("Not all cases approved")
     note_text = "Orientering om godkendelse af udrejse er sendt til anmelder"
     eflyt_case.add_note(browser, note_text)
     oc.log_trace("Case approved and note added.")
