@@ -49,7 +49,7 @@ def handle_case(browser: webdriver.Chrome, oc: OrchestratorConnection, queue_ele
 
     first_habitant_is_applicant = rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
     first_habitant_is_only_applicant = len(applicants) == 1 and first_habitant_is_applicant
-    case_unprocessed = all([row.find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" for row in rows[:2]])
+    case_unprocessed = all(row.find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" for row in rows[:2])
 
     if not first_habitant_is_only_applicant or not case_unprocessed:
         itk_dev_event_log.emit(oc.process_name, "Skipped")
