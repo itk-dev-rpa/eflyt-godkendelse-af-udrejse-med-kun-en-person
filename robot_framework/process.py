@@ -11,6 +11,7 @@ from OpenOrchestrator.orchestrator_connection.connection import OrchestratorConn
 from OpenOrchestrator.database.queues import QueueElement, QueueStatus
 
 from robot_framework.eflyt import filter_cases
+from robot_framework import config
 
 
 # pylint: disable-next=unused-argument
@@ -18,7 +19,7 @@ def process(orchestrator_connection: OrchestratorConnection, queue_element: Queu
     """Do the primary process of the robot."""
     orchestrator_connection.log_trace("Running process.")
 
-    credentials = orchestrator_connection.get_credential("Eflyt")
+    credentials = orchestrator_connection.get_credential(config.CRED_NAME)
     browser = eflyt_login.login(credentials.username, credentials.password)
     event_log = orchestrator_connection.get_constant("Event Log")
     itk_dev_event_log.setup_logging(event_log.value)
@@ -46,8 +47,10 @@ def handle_case(browser: webdriver.Chrome, oc: OrchestratorConnection, queue_ele
     rows = table.find_elements(By.TAG_NAME, "tr")
     move_date = rows[0].find_element(By.XPATH, "td[2]/a[1]").text
 
-    first_habitant_is_only_applicant = len(applicants) == 1 and rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
-    case_unprocessed = rows[0].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" and rows[1].find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet"
+    first_habitant_is_applicant = rows[1].find_element(By.XPATH, "td[2]/a[1]").text == "A"
+    first_habitant_is_only_applicant = len(applicants) == 1 and first_habitant_is_applicant
+    case_unprocessed = all([row.find_element(By.XPATH, "td[6]/a[1]").text == "Ubehandlet" for row in rows[:2]])
+
     if not first_habitant_is_only_applicant or not case_unprocessed:
         itk_dev_event_log.emit(oc.process_name, "Skipped")
         oc.log_trace("Skipping case")
@@ -57,7 +60,7 @@ def handle_case(browser: webdriver.Chrome, oc: OrchestratorConnection, queue_ele
     date_today = date.today().strftime("%d-%m-%Y")
     letter_text = f"""Du har anmeldt udrejse af Danmark.
 
-Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {move_date}.
+Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra d. {move_date}.
 """
     if rows[0].find_element(By.XPATH, "td[4]/a[1]").text == "Engelsk":  # If it's an english citizen, write in english.
         letter_text = f"""You have reported your departure from Denmark.
@@ -66,7 +69,7 @@ Vi har d. {date_today} godkendt din anmodning om udrejse med virkning fra den {m
 
     if not eflyt_letter.send_letter_to_anmelder(browser, letter_text):
         itk_dev_event_log.emit(oc.process_name, "Not registered with Digital Post")
-        oc.log_trace("Letter could not be sent.")
+        oc.log_info("Letter could not be sent.")
         oc.set_queue_element_status(queue_element.id, QueueStatus.DONE)
         return
 
@@ -91,7 +94,7 @@ def get_queue_element(oc: OrchestratorConnection, reference: str) -> QueueElemen
         A QueueElement for the case.
     """
     existing_elements = oc.get_queue_elements(oc.process_name, reference)
-    if len(existing_elements) == 0:
+    if len(existing_elements) < 3:
         return oc.create_queue_element(oc.process_name, reference)
     return existing_elements[0]
 
