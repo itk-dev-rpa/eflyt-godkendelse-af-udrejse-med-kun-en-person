@@ -25,3 +25,5 @@ QUEUE_NAME = None
 MAX_TASK_COUNT = 100
 
 # ----------------------
+
+CRED_NAME = "Eflyt"
